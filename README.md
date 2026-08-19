@@ -6,6 +6,17 @@
 [luci-app-passwall](https://github.com/Openwrt-Passwall/openwrt-passwall)：传统代理工具。内存占用稍低、简单易用。<br>
 [luci-app-podman](https://github.com/Zerogiven-OpenWRT-Packages/luci-app-podman)：容器管理<br>
 luci-app-samba4：存储共享
+
+# 自动构建
+源码来自 [nantayo/N1-OpenWrt](https://github.com/nantayo/N1-OpenWrt)，使用 GitHub Actions 编译 ImmortalWrt 25.12 并打包 N1 固件。
+
+- 每月 1 日、16 日自动构建
+- 修改 `armsr/` 或工作流后推送到 `master` 会触发构建
+- 也可在 Actions 页手动运行 **Build ImmortalWrt-25.12 for N1**
+- 编译完成后固件发布到 [Releases](../../releases)
+
+首次使用 Actions 时，请确认仓库 **Settings → Actions → General** 已允许运行工作流，并允许读写权限以便上传 Release。
+
 ***
 # 致谢
 本项目基于 [ImmortalWrt-25.12](https://github.com/immortalwrt/immortalwrt/tree/openwrt-25.12) 源码编译，使用 ophub 的[脚本](https://github.com/ophub/amlogic-s9xxx-openwrt)和 flippy 的[内核](https://github.com/ophub/kernel/releases/tag/kernel_flippy)打包成完整固件，感谢开发者们的无私分享。<br>

@@ -1,18 +1,32 @@
-name: Build ImmortalWrt-25.12 for armsr_armv8
+name: Build ImmortalWrt-25.12 for N1
 
 on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/**"
+      - "armsr/**"
   workflow_dispatch:
-   inputs:
+    inputs:
       ssh:
-        description: 'SSH connection to Actions'
+        description: "SSH connection to Actions"
         required: true
-        default: 'false'
+        default: "false"
         type: choice
         options:
           - true
           - false
   schedule:
+    # 每月 1 日、16 日 08:00 CST 自动构建
     - cron: "0 0 1,16 * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -23,6 +37,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    if: github.event_name != 'workflow_dispatch' || github.event.repository.owner.id == github.event.sender.id
 
     steps:
     - name: Checkout
@@ -88,7 +103,7 @@ jobs:
         kernel_usage: flippy
         openwrt_kernel: 6.12.y
         openwrt_size: 256/1024
-        builder_name: nantayo
+        builder_name: ${{ github.repository_owner }}
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@master
