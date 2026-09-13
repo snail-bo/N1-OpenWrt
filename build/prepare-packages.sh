@@ -26,6 +26,25 @@ sed -i \
   -e "s/^PKG_SOURCE_VERSION:=.*/PKG_SOURCE_VERSION:=${daed_source_revision}/" \
   -e '/^PKG_MIRROR_HASH:=/d' \
   package/custom/daede/daed/Makefile
+# Export BPF variables before the first `go generate ./...` invocation.
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path('package/custom/daede/daed/Makefile')
+text = path.read_text()
+marker = "\t\tgo mod tidy ; \\\n"
+prefix = (
+    "\t\texport \\\n"
+    "\t\tBPF_CLANG=\"$(CLANG)\" \\\n"
+    "\t\tBPF_STRIP_FLAG=\"-strip=$(LLVM_STRIP)\" \\\n"
+    "\t\tBPF_CFLAGS=\"$(DAE_CFLAGS)\" \\\n"
+    "\t\tBPF_TARGET=\"bpfel,bpfeb\" \\\n"
+    "\t\tBPF_TRACE_TARGET=\"$(GO_ARCH)\" ; \\\n"
+)
+if marker not in text:
+    raise SystemExit('go mod tidy line not found')
+path.write_text(text.replace(marker, prefix + marker, 1))
+PY
 printf '%s daed-package %s daed-source %s\n' "$daede_revision" "$daede_revision" "$daed_source_revision" > package/custom/daede/.source-revision
 fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" package/custom/argon
 printf '%s\n' "$argon_revision" > package/custom/argon/.source-revision
