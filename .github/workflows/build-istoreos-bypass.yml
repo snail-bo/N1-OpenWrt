@@ -1,0 +1,190 @@
+name: Build iStoreOS bypass routers
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - ".github/**"
+      - "build/**"
+      - "platforms/**"
+      - "README.md"
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 1,16 * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  SOURCE_REPO: https://github.com/istoreos/istoreos.git
+  SOURCE_BRANCH: istoreos-24.10
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x86_64, n1]
+
+    steps:
+      - name: Checkout configuration
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        timeout-minutes: 35
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -euo pipefail
+          sudo apt-get -qq update
+          mapfile -t packages < .github/build-packages.txt
+          sudo apt-get -qq install -y --no-install-recommends "${packages[@]}"
+          sudo timedatectl set-timezone "$TZ"
+          sudo mkdir -p /workdir
+          sudo chown "$USER":"$(id -gn)" /workdir
+
+      - name: Clone iStoreOS
+        working-directory: /workdir
+        run: |
+          set -euo pipefail
+          git clone --depth=1 --single-branch --branch "$SOURCE_BRANCH" "$SOURCE_REPO" openwrt
+          ln -s /workdir/openwrt "$GITHUB_WORKSPACE/openwrt"
+          echo "SOURCE_COMMIT=$(git -C openwrt rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: istoreos-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('build/**', 'platforms/**') }}
+          restore-keys: |
+            istoreos-${{ runner.os }}-${{ matrix.platform }}-
+
+      - name: Prepare feeds and daed
+        run: |
+          set -euo pipefail
+          cd openwrt
+          ./scripts/feeds update -a
+          "$GITHUB_WORKSPACE/build/prepare-packages.sh" "${{ matrix.platform }}"
+          ./scripts/feeds install -a
+
+      - name: Load and verify configuration
+        run: |
+          set -euo pipefail
+          cd openwrt
+          cp "$GITHUB_WORKSPACE/platforms/${{ matrix.platform }}/config.seed" .config
+          rm -rf files
+          cp -a "$GITHUB_WORKSPACE/platforms/${{ matrix.platform }}/files" files
+          make defconfig
+          grep -qx 'CONFIG_PACKAGE_daed=y' .config
+          grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
+          grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
+          ! grep -Eq '^CONFIG_PACKAGE_(luci-app-samba4|samba4-server|luci-app-ksmbd|ksmbd-server|luci-app-dockerman|dockerd|podman)=y$' .config
+          ! grep -Eq '^CONFIG_PACKAGE_(wpad|wpad-basic-mbedtls|hostapd|kmod-mac80211|kmod-cfg80211)=y$' .config
+          if [ '${{ matrix.platform }}' = x86_64 ]; then
+            grep -qx 'CONFIG_TARGET_x86_64=y' .config
+          else
+            grep -qx 'CONFIG_TARGET_armsr_armv8=y' .config
+            grep -qx 'CONFIG_PACKAGE_luci-app-amlogic=y' .config
+          fi
+
+      - name: Download sources
+        working-directory: ./openwrt
+        timeout-minutes: 60
+        run: |
+          set -euo pipefail
+          jobs=$(nproc)
+          [ "$jobs" -le 4 ] || jobs=4
+          if ! make download -j"$jobs"; then
+            find dl -size -1k -delete
+            make download -j1 V=s
+          fi
+          find dl -size -1k -delete
+
+      - name: Compile firmware
+        working-directory: ./openwrt
+        timeout-minutes: 270
+        run: |
+          jobs=$(( $(nproc) + 1 ))
+          make -j"$jobs" || make -j1 V=s
+
+      - name: Collect x86_64 images
+        if: matrix.platform == 'x86_64'
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          target=openwrt/bin/targets/x86/64
+          cp "$target"/*combined*.img.gz output/
+          cp openwrt/.config output/x86_64.config
+          cp "$target"/sha256sums output/
+          printf 'iStoreOS %s\ndaede %s\n' "$SOURCE_COMMIT" "$(cat openwrt/package/custom/daede/.source-revision)" > output/source-versions.txt
+          ls -lh output
+
+      - name: Package N1 image
+        if: matrix.platform == 'n1'
+        uses: ophub/amlogic-s9xxx-openwrt@main
+        with:
+          openwrt_path: openwrt/bin/targets/armsr/armv8/*rootfs.tar.gz
+          openwrt_board: s905d
+          kernel_repo: ophub/kernel
+          kernel_usage: flippy
+          openwrt_kernel: 6.12.y
+          openwrt_size: 256/1024
+          builder_name: ${{ github.repository_owner }}
+
+      - name: Collect N1 images
+        if: matrix.platform == 'n1'
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          cp "${PACKAGED_OUTPUTPATH}"/*.img.gz output/
+          cp openwrt/.config output/n1.config
+          printf 'iStoreOS %s\ndaede %s\n' "$SOURCE_COMMIT" "$(cat openwrt/package/custom/daede/.source-revision)" > output/source-versions-n1.txt
+          cd output
+          sha256sum -- * > sha256sums-n1.txt
+          ls -lh
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: istoreos-${{ matrix.platform }}
+          path: output/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish firmware
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: istoreos-*
+          path: release
+          merge-multiple: true
+
+      - name: Prepare release metadata
+        run: echo "FILE_DATE=$(TZ=Asia/Shanghai date +'%Y%m%d')" >> "$GITHUB_ENV"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: istoreos-bypass_${{ env.FILE_DATE }}_${{ github.run_number }}
+          files: release/*
+          body: |
+            iStoreOS 24.10 bypass-router builds for x86_64 and Phicomm N1.
+
+            Default management address: 192.168.2.2
+            Upstream gateway/DNS: 192.168.2.1
+            Username: root
+
+            Includes daed and luci-app-daede with kernel BTF/XDP support.
+            Wi-Fi, Samba/KSMBD, Docker and Podman are excluded.

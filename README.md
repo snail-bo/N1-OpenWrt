@@ -1,23 +1,67 @@
-# 项目简介
-本固件适配斐讯 N1 旁路由模式，追求轻量，不具备 PPPoE、WiFi 相关功能。<br>
-固件仅包含默认皮肤以及下列 luci-app：<br>
-[luci-app-amlogic](https://github.com/ophub/luci-app-amlogic)：系统更新、文件传输、CPU 调频等<br>
-[luci-app-daed](https://github.com/QiuSimons/luci-app-daed)：基于eBPF分流的代理工具。内存占用稍大、上手门槛较高，换来的是直连流量处理性能大幅强于传统的各类用户态代理工具(OpenClash、SSRplus、Passwall等)。<br>
-[luci-app-passwall](https://github.com/Openwrt-Passwall/openwrt-passwall)：传统代理工具。内存占用稍低、简单易用。<br>
-[luci-app-podman](https://github.com/Zerogiven-OpenWRT-Packages/luci-app-podman)：容器管理<br>
-luci-app-samba4：存储共享
+# iStoreOS 旁路由自动构建
 
-# 自动构建
-源码来自 [nantayo/N1-OpenWrt](https://github.com/nantayo/N1-OpenWrt)，使用 GitHub Actions 编译 ImmortalWrt 25.12 并打包 N1 固件。
+基于 [iStoreOS](https://github.com/istoreos/istoreos) 当前维护的 `istoreos-24.10` 分支，为以下两个平台生成轻量旁路由固件：
 
-- 每月 1 日、16 日自动构建
-- 修改 `armsr/` 或工作流后推送到 `master` 会触发构建
-- 也可在 Actions 页手动运行 **Build ImmortalWrt-25.12 for N1**
-- 编译完成后固件发布到 [Releases](../../releases)
+- 通用 `x86_64`：同时生成传统 BIOS 与 UEFI 磁盘镜像。
+- 斐讯 N1（Amlogic S905D）：使用 iStoreOS `armsr/armv8` rootfs 和 Ophub Flippy 6.12 内核打包。
 
-首次使用 Actions 时，请确认仓库 **Settings → Actions → General** 已允许运行工作流，并允许读写权限以便上传 Release。
+两套固件均内置 [daed](https://github.com/daeuniverse/daed) 与 `luci-app-daede`，不包含 Wi-Fi、Samba/KSMBD、Docker、Podman、PassWall 等无关组件。
 
-***
-# 致谢
-本项目基于 [ImmortalWrt-25.12](https://github.com/immortalwrt/immortalwrt/tree/openwrt-25.12) 源码编译，使用 ophub 的[脚本](https://github.com/ophub/amlogic-s9xxx-openwrt)和 flippy 的[内核](https://github.com/ophub/kernel/releases/tag/kernel_flippy)打包成完整固件，感谢开发者们的无私分享。<br>
-flippy 固件的更多细节参考[恩山论坛帖子](https://www.right.com.cn/forum/thread-4076037-1-1.html)。
+## 默认网络
+
+固件按单网口旁路由配置：
+
+| 项目 | 默认值 |
+|---|---|
+| 管理接口 | `eth0` |
+| 管理地址 | `192.168.2.2/24` |
+| 上级网关 | `192.168.2.1` |
+| DNS | `192.168.2.1` |
+| 用户名 | `root` |
+
+如果主路由不是 `192.168.2.1`，请在刷写前修改相应平台的 `files/etc/config/network`，或首次启动后通过终端修改。旁路由通常还需要在主路由中把需要代理的客户端网关/DNS 指向 `192.168.2.2`。
+
+## daed 支持
+
+daed 使用 eBPF/XDP，构建配置启用了 Kernel BTF、BPF events、cgroup BPF、XDP sockets，以及 `kmod-sched-bpf`、`kmod-xdp-sockets-diag` 等运行依赖。LuCI 默认选择 daed 后端，可从“服务 → daede”进行配置。
+
+N1 最终镜像使用外置 Flippy 内核。刷写后应先执行以下命令，确认实际内核提供 BTF，再启用透明代理：
+
+```sh
+test -r /sys/kernel/btf/vmlinux && echo BTF_OK || echo BTF_MISSING
+daed --version
+```
+
+## 自动构建
+
+工作流 `Build iStoreOS bypass routers` 使用矩阵并行构建 x86_64 与 N1，并在两者均成功后发布到同一个 Release。
+
+- 修改 `.github/`、`build/`、`platforms/` 或 README 后推送到 `master` 自动触发。
+- 每月 1 日和 16 日北京时间 08:00 自动构建。
+- 支持在 Actions 页面手动运行。
+- Release 标签为 `istoreos-bypass_<日期>_<运行序号>`。
+- Release 同时包含固件、最终 `.config`、源码版本和 SHA-256 校验文件。
+
+目录结构：
+
+```text
+.github/workflows/build-istoreos-bypass.yml
+build/prepare-packages.sh
+platforms/
+├── x86_64/
+│   ├── config.seed
+│   └── files/etc/config/network
+└── n1/
+    ├── config.seed
+    └── files/etc/
+```
+
+## 安装提示
+
+x86_64 镜像需要先解压 `.img.gz`，再写入独立磁盘；根据机器启动方式选择 BIOS 或 EFI 镜像。安装前确认 `eth0` 对应预期管理网卡，首次启动时建议只连接一张网卡。
+
+N1 建议先从 U 盘启动验证网卡、BTF、daed 和重启功能，确认正常后再通过 Amlogic Service 写入 eMMC。写盘会覆盖目标设备数据，必须先备份原系统及关键分区。
+
+## 上游项目
+
+[iStoreOS](https://github.com/istoreos/istoreos) · [daed](https://github.com/daeuniverse/daed) · [openwrt-daede](https://github.com/kenzok8/openwrt-daede) · [amlogic-s9xxx-openwrt](https://github.com/ophub/amlogic-s9xxx-openwrt)
