@@ -5,6 +5,7 @@ platform="${1:?platform is required}"
 daede_revision=542e86e84e4baec51070e43ab810d0788ebf41d7
 daed_source_revision=4a519fcbaa7004e50e80a309c68d6811596468cf
 argon_revision=ddefe5f05ca334dba10d2d65d25ebf14e986ee88
+golang_revision=94dd0f5793debfee007f0581509640c392de7188
 
 fetch_revision() {
   local url="$1"
@@ -19,9 +20,13 @@ fetch_revision() {
 
 mkdir -p package/custom
 rm -rf package/custom/daede package/custom/argon package/custom/amlogic
+# daed's nested dae-core requires Go 1.24. Replace the iStoreOS 24.10
+# Go 1.23 feed with sbwml's OpenWrt 24.10-compatible Go 1.24 package.
+rm -rf feeds/packages/lang/golang
+fetch_revision https://github.com/sbwml/packages_lang_golang.git "$golang_revision" feeds/packages/lang/golang
 fetch_revision https://github.com/kenzok8/openwrt-daede.git "$daede_revision" package/custom/daede
-# iStoreOS 24.10 ships Go 1.23. The newer assembled daed source requires
-# Go 1.24, while this earlier ksong/daed commit still builds with Go 1.23.
+# Keep daed on the package feed's matching source generation. Its wing module
+# supports Go 1.23, while the nested dae-core module requires Go 1.24.
 sed -i \
   -e "s/^PKG_SOURCE_VERSION:=.*/PKG_SOURCE_VERSION:=${daed_source_revision}/" \
   -e '/^PKG_MIRROR_HASH:=/d' \
@@ -62,3 +67,4 @@ rm -rf \
 
 echo "==> daed package source: $daede_revision"
 echo "==> Argon theme source: $argon_revision"
+echo "==> Go toolchain source: $golang_revision"
