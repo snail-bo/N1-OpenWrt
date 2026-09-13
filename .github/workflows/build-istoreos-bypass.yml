@@ -72,7 +72,7 @@ jobs:
           set -euo pipefail
           cd openwrt
           ./scripts/feeds update -a
-          "$GITHUB_WORKSPACE/build/prepare-packages.sh" "${{ matrix.platform }}"
+          bash "$GITHUB_WORKSPACE/build/prepare-packages.sh" "${{ matrix.platform }}"
           ./scripts/feeds install -a
 
       - name: Load and verify configuration
