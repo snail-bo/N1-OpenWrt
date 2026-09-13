@@ -115,8 +115,20 @@ jobs:
         working-directory: ./openwrt
         timeout-minutes: 270
         run: |
+          set -o pipefail
           jobs=$(( $(nproc) + 1 ))
-          make -j"$jobs" || make -j1 V=s
+          if ! make -j"$jobs"; then
+            make -j1 V=s 2>&1 | tee build-retry.log
+          fi
+
+      - name: Upload compile log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compile-log-${{ matrix.platform }}
+          path: openwrt/build-retry.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Collect x86_64 images
         if: matrix.platform == 'x86_64'

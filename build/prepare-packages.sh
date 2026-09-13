@@ -3,6 +3,7 @@ set -euo pipefail
 
 platform="${1:?platform is required}"
 daede_revision=542e86e84e4baec51070e43ab810d0788ebf41d7
+daed_source_revision=4a519fcbaa7004e50e80a309c68d6811596468cf
 argon_revision=ddefe5f05ca334dba10d2d65d25ebf14e986ee88
 
 fetch_revision() {
@@ -19,7 +20,13 @@ fetch_revision() {
 mkdir -p package/custom
 rm -rf package/custom/daede package/custom/argon package/custom/amlogic
 fetch_revision https://github.com/kenzok8/openwrt-daede.git "$daede_revision" package/custom/daede
-printf '%s\n' "$daede_revision" > package/custom/daede/.source-revision
+# iStoreOS 24.10 ships Go 1.23. The newer assembled daed source requires
+# Go 1.24, while this earlier ksong/daed commit still builds with Go 1.23.
+sed -i \
+  -e "s/^PKG_SOURCE_VERSION:=.*/PKG_SOURCE_VERSION:=${daed_source_revision}/" \
+  -e '/^PKG_MIRROR_HASH:=/d' \
+  package/custom/daede/daed/Makefile
+printf '%s daed-package %s daed-source %s\n' "$daede_revision" "$daede_revision" "$daed_source_revision" > package/custom/daede/.source-revision
 fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" package/custom/argon
 printf '%s\n' "$argon_revision" > package/custom/argon/.source-revision
 
