@@ -3,6 +3,7 @@ set -euo pipefail
 
 platform="${1:?platform is required}"
 daede_revision=542e86e84e4baec51070e43ab810d0788ebf41d7
+argon_revision=ddefe5f05ca334dba10d2d65d25ebf14e986ee88
 
 fetch_revision() {
   local url="$1"
@@ -16,9 +17,11 @@ fetch_revision() {
 }
 
 mkdir -p package/custom
-rm -rf package/custom/daede package/custom/amlogic
+rm -rf package/custom/daede package/custom/argon package/custom/amlogic
 fetch_revision https://github.com/kenzok8/openwrt-daede.git "$daede_revision" package/custom/daede
 printf '%s\n' "$daede_revision" > package/custom/daede/.source-revision
+fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" package/custom/argon
+printf '%s\n' "$argon_revision" > package/custom/argon/.source-revision
 
 if [ "$platform" = n1 ]; then
   git clone --depth=1 https://github.com/ophub/luci-app-amlogic.git package/custom/amlogic
@@ -32,3 +35,4 @@ rm -rf \
   feeds/packages/net/daed
 
 echo "==> daed package source: $daede_revision"
+echo "==> Argon theme source: $argon_revision"

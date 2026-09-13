@@ -81,8 +81,11 @@ jobs:
           cd openwrt
           cp "$GITHUB_WORKSPACE/platforms/${{ matrix.platform }}/config.seed" .config
           rm -rf files
-          cp -a "$GITHUB_WORKSPACE/platforms/${{ matrix.platform }}/files" files
+          mkdir -p files
+          cp -a "$GITHUB_WORKSPACE/platforms/common/files/." files/
+          cp -a "$GITHUB_WORKSPACE/platforms/${{ matrix.platform }}/files/." files/
           make defconfig
+          grep -qx 'CONFIG_PACKAGE_luci-theme-argon=y' .config
           grep -qx 'CONFIG_PACKAGE_daed=y' .config
           grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
           grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
@@ -124,7 +127,10 @@ jobs:
           cp "$target"/*combined*.img.gz output/
           cp openwrt/.config output/x86_64.config
           cp "$target"/sha256sums output/
-          printf 'iStoreOS %s\ndaede %s\n' "$SOURCE_COMMIT" "$(cat openwrt/package/custom/daede/.source-revision)" > output/source-versions.txt
+          printf 'iStoreOS %s\ndaede %s\nargon %s\n' \
+            "$SOURCE_COMMIT" \
+            "$(cat openwrt/package/custom/daede/.source-revision)" \
+            "$(cat openwrt/package/custom/argon/.source-revision)" > output/source-versions.txt
           ls -lh output
 
       - name: Package N1 image
@@ -146,7 +152,10 @@ jobs:
           mkdir -p output
           cp "${PACKAGED_OUTPUTPATH}"/*.img.gz output/
           cp openwrt/.config output/n1.config
-          printf 'iStoreOS %s\ndaede %s\n' "$SOURCE_COMMIT" "$(cat openwrt/package/custom/daede/.source-revision)" > output/source-versions-n1.txt
+          printf 'iStoreOS %s\ndaede %s\nargon %s\n' \
+            "$SOURCE_COMMIT" \
+            "$(cat openwrt/package/custom/daede/.source-revision)" \
+            "$(cat openwrt/package/custom/argon/.source-revision)" > output/source-versions-n1.txt
           cd output
           sha256sum -- * > sha256sums-n1.txt
           ls -lh

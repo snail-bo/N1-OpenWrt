@@ -5,7 +5,7 @@
 - 通用 `x86_64`：同时生成传统 BIOS 与 UEFI 磁盘镜像。
 - 斐讯 N1（Amlogic S905D）：使用 iStoreOS `armsr/armv8` rootfs 和 Ophub Flippy 6.12 内核打包。
 
-两套固件均内置 [daed](https://github.com/daeuniverse/daed) 与 `luci-app-daede`，不包含 Wi-Fi、Samba/KSMBD、Docker、Podman、PassWall 等无关组件。
+两套固件均内置 [daed](https://github.com/daeuniverse/daed) 与 `luci-app-daede`，安装 `luci-theme-argon` 并将其设为默认主题；不包含 Wi-Fi、Samba/KSMBD、Docker、Podman、PassWall 等无关组件。
 
 ## 默认网络
 
@@ -48,6 +48,7 @@ daed --version
 .github/workflows/build-istoreos-bypass.yml
 build/prepare-packages.sh
 platforms/
+├── common/files/etc/uci-defaults/90-default-argon-theme
 ├── x86_64/
 │   ├── config.seed
 │   └── files/etc/config/network
