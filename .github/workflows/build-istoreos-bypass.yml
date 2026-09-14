@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [x86_64, n1]
+        platform: [x86_64, n1, hc5962]
 
     steps:
       - name: Checkout configuration
@@ -67,7 +67,7 @@ jobs:
           restore-keys: |
             istoreos-${{ runner.os }}-${{ matrix.platform }}-
 
-      - name: Prepare feeds and daed
+      - name: Prepare feeds and platform packages
         run: |
           set -euo pipefail
           cd openwrt
@@ -86,16 +86,25 @@ jobs:
           cp -a "$GITHUB_WORKSPACE/platforms/${{ matrix.platform }}/files/." files/
           make defconfig
           grep -qx 'CONFIG_PACKAGE_luci-theme-argon=y' .config
-          grep -qx 'CONFIG_PACKAGE_daed=y' .config
-          grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
-          grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
           ! grep -Eq '^CONFIG_PACKAGE_(luci-app-samba4|samba4-server|luci-app-ksmbd|ksmbd-server|luci-app-dockerman|dockerd|podman)=y$' .config
-          ! grep -Eq '^CONFIG_PACKAGE_(wpad|wpad-basic-mbedtls|hostapd|kmod-mac80211|kmod-cfg80211)=y$' .config
+          ! grep -Eq '^CONFIG_PACKAGE_(wpad|wpad-basic-mbedtls|wpad-basic-wolfssl|hostapd|kmod-mac80211|kmod-cfg80211)=y$' .config
           if [ '${{ matrix.platform }}' = x86_64 ]; then
             grep -qx 'CONFIG_TARGET_x86_64=y' .config
-          else
+            grep -qx 'CONFIG_PACKAGE_daed=y' .config
+            grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
+            grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
+          elif [ '${{ matrix.platform }}' = n1 ]; then
             grep -qx 'CONFIG_TARGET_armsr_armv8=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-amlogic=y' .config
+            grep -qx 'CONFIG_PACKAGE_daed=y' .config
+            grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
+            grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
+          else
+            grep -qx 'CONFIG_TARGET_ramips_mt7621_DEVICE_hiwifi_hc5962=y' .config
+            grep -qx 'CONFIG_PACKAGE_luci-app-passwall=y' .config
+            grep -qx 'CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y' .config
+            grep -qx 'CONFIG_PACKAGE_sing-box=y' .config
+            ! grep -Eq '^CONFIG_PACKAGE_(daed|luci-app-daede|xray-core|kmod-mt7603|kmod-mt76x2|kmod-mt76)=y$' .config
           fi
 
       - name: Download sources
@@ -172,6 +181,22 @@ jobs:
           sha256sum -- * > sha256sums-n1.txt
           ls -lh
 
+      - name: Collect HC5962 images
+        if: matrix.platform == 'hc5962'
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          target=openwrt/bin/targets/ramips/mt7621
+          cp "$target"/*hiwifi_hc5962*.bin output/
+          cp openwrt/.config output/hc5962.config
+          cp "$target"/sha256sums output/
+          printf 'iStoreOS %s\nPassWall %s\nPassWall packages %s\nargon %s\n' \
+            "$SOURCE_COMMIT" \
+            "$(cat openwrt/package/custom/passwall/.source-revision)" \
+            "$(cat openwrt/package/custom/passwall-packages/.source-revision)" \
+            "$(cat openwrt/package/custom/argon/.source-revision)" > output/source-versions-hc5962.txt
+          ls -lh output
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -201,11 +226,12 @@ jobs:
           tag_name: istoreos-bypass_${{ env.FILE_DATE }}_${{ github.run_number }}
           files: release/*
           body: |
-            iStoreOS 24.10 bypass-router builds for x86_64 and Phicomm N1.
+            iStoreOS 24.10 bypass-router builds for x86_64, Phicomm N1 and HiWiFi HC5962.
 
             Default management address: 192.168.2.2
             Upstream gateway/DNS: 192.168.2.1
             Username: root
 
-            Includes daed and luci-app-daede with kernel BTF/XDP support.
-            Wi-Fi, Samba/KSMBD, Docker and Podman are excluded.
+            x86_64/N1 include daed with kernel BTF/XDP support.
+            HC5962 includes PassWall with sing-box as its only proxy core.
+            Wi-Fi, Samba/KSMBD, Docker and Podman are excluded from all builds.
