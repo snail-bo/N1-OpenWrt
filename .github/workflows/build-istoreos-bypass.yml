@@ -84,15 +84,19 @@ jobs:
           mkdir -p files
           cp -a "$GITHUB_WORKSPACE/platforms/common/files/." files/
           cp -a "$GITHUB_WORKSPACE/platforms/${{ matrix.platform }}/files/." files/
-          grep -q "option ipaddr '192.168.3.1'" files/etc/config/network
+          if [ '${{ matrix.platform }}' = x86_64 ]; then
+            grep -q "option ipaddr '192.168.9.150'" files/etc/config/network
+          else
+            grep -q "option ipaddr '192.168.3.1'" files/etc/config/network
+          fi
           make defconfig
           grep -qx 'CONFIG_PACKAGE_luci-theme-argon=y' .config
           ! grep -Eq '^CONFIG_PACKAGE_(luci-app-samba4|samba4-server|luci-app-ksmbd|ksmbd-server|luci-app-dockerman|dockerd|podman)=y$' .config
           ! grep -Eq '^CONFIG_PACKAGE_(wpad|wpad-basic-mbedtls|wpad-basic-wolfssl|hostapd|kmod-mac80211|kmod-cfg80211)=y$' .config
           if [ '${{ matrix.platform }}' = x86_64 ]; then
             grep -A2 "config interface 'wan'" files/etc/config/network | grep -q "option proto 'dhcp'"
-            grep -A2 "config interface 'lan'" files/etc/config/network | grep -q "option device 'eth1'"
-            grep -A2 "config interface 'wan'" files/etc/config/network | grep -q "option device 'eth0'"
+            grep -A2 "config interface 'lan'" files/etc/config/network | grep -q "option device 'eth0'"
+            grep -A2 "config interface 'wan'" files/etc/config/network | grep -q "option device 'eth1'"
             grep -qx 'GO_VERSION_MAJOR_MINOR:=1.24' feeds/packages/lang/golang/golang/Makefile
             grep -qx 'CONFIG_TARGET_x86_64=y' .config
             grep -qx 'CONFIG_PACKAGE_daed=y' .config
@@ -238,9 +242,9 @@ jobs:
           body: |
             iStoreOS 24.10 bypass-router builds for x86_64, Phicomm N1 and HiWiFi HC5962.
 
-            LAN management address for all builds: 192.168.3.1
-            x86_64 LAN (eth1): 192.168.3.1
-            x86_64 WAN/WAN6 (eth0): DHCP/DHCPv6
+            x86_64 LAN (eth0): 192.168.9.150
+            x86_64 WAN/WAN6 (eth1): DHCP/DHCPv6
+            N1 and HC5962 LAN management address: 192.168.3.1
             HC5962 WAN/WAN6: DHCP/DHCPv6
             N1 single-port upstream gateway and DNS: 192.168.3.254
             Username: root
