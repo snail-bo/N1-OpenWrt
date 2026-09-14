@@ -3,7 +3,6 @@ set -euo pipefail
 
 platform="${1:?platform is required}"
 daede_revision=542e86e84e4baec51070e43ab810d0788ebf41d7
-daed_source_revision=4a519fcbaa7004e50e80a309c68d6811596468cf
 argon_revision=ddefe5f05ca334dba10d2d65d25ebf14e986ee88
 golang24_revision=94dd0f5793debfee007f0581509640c392de7188
 golang25_revision=e952b860128acc1e2c09caeff657109522c04d08
@@ -42,12 +41,8 @@ if [ "$platform" = hc5962 ]; then
   printf '%s\n' "$passwall_packages_revision" > package/custom/passwall-packages/.source-revision
 else
   fetch_revision https://github.com/kenzok8/openwrt-daede.git "$daede_revision" package/custom/daede
-  # Keep daed on the package feed's matching source generation. Its wing module
-  # supports Go 1.23, while the nested dae-core module requires Go 1.24.
-  sed -i \
-    -e "s/^PKG_SOURCE_VERSION:=.*/PKG_SOURCE_VERSION:=${daed_source_revision}/" \
-    -e '/^PKG_MIRROR_HASH:=/d' \
-    package/custom/daede/daed/Makefile
+  # Keep the package's original backend source, web asset and mirror hash as a
+  # tested set. Overriding only PKG_SOURCE_VERSION breaks the bundled Web UI.
   # Export BPF variables before the first `go generate ./...` invocation.
   python3 - <<'PY'
 from pathlib import Path
@@ -67,7 +62,13 @@ if marker not in text:
     raise SystemExit('go mod tidy line not found')
 path.write_text(text.replace(marker, prefix + marker, 1))
 PY
-  printf '%s daed-package %s daed-source %s\n' "$daede_revision" "$daede_revision" "$daed_source_revision" > package/custom/daede/.source-revision
+  daed_source_revision="$(sed -n 's/^PKG_SOURCE_VERSION:=//p' package/custom/daede/daed/Makefile)"
+  daed_web_version="$(sed -n 's/^PKG_WEB_VERSION:=//p' package/custom/daede/daed/Makefile)"
+  test -n "$daed_source_revision"
+  test -n "$daed_web_version"
+  printf '%s daed-package %s daed-source %s daed-web %s\n' \
+    "$daede_revision" "$daede_revision" "$daed_source_revision" "$daed_web_version" \
+    > package/custom/daede/.source-revision
 fi
 fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" package/custom/argon
 printf '%s\n' "$argon_revision" > package/custom/argon/.source-revision
