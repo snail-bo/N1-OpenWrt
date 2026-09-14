@@ -14,7 +14,7 @@ x86_64 与 N1 内置 [daed](https://github.com/daeuniverse/daed)；HC5962 内置
 
 | 平台 | 管理地址 | 上级连接 | 上级网关/DNS |
 |---|---|---|---|
-| x86_64 | `192.168.3.1/24` | `eth0` 为 LAN，`eth1` 为 WAN | 由 WAN DHCP 下发 |
+| x86_64 | `192.168.3.1/24` | `eth1` 为 LAN，`eth0` 为 WAN | 由 WAN DHCP 下发 |
 | N1 | `192.168.3.1/24` | `eth0` 单网口旁路由 | `192.168.3.254` |
 | HC5962 | `192.168.3.1/24` | 独立 WAN 口，通过 DHCP 获取 | 由 WAN DHCP 下发 |
 
@@ -22,7 +22,7 @@ x86_64 与 N1 内置 [daed](https://github.com/daeuniverse/daed)；HC5962 内置
 
 ### x86_64
 
-`eth0` 是 LAN，`eth1` 是 DHCP WAN；如果实际网卡枚举顺序不同，需要在首次启动后交换两个设备名。
+`eth1` 是 LAN，`eth0` 是 DHCP/DHCPv6 WAN；如果实际网卡枚举顺序不同，需要在首次启动后交换两个设备名。
 
 ### N1
 
@@ -82,7 +82,7 @@ platforms/
 
 ## 安装提示
 
-x86_64 镜像需要先解压 `.img.gz`，再写入独立磁盘；根据机器启动方式选择 BIOS 或 EFI 镜像。安装前确认 `eth0` 对应预期管理网卡，首次启动时建议只连接一张网卡。
+x86_64 镜像需要先解压 `.img.gz`，再写入独立磁盘；根据机器启动方式选择 BIOS 或 EFI 镜像。首次启动时 `eth1` 是管理 LAN、`eth0` 是 DHCP WAN，请确认实际网卡枚举顺序符合预期。
 
 N1 建议先从 U 盘启动验证网卡、BTF、daed 和重启功能，确认正常后再通过 Amlogic Service 写入 eMMC。写盘会覆盖目标设备数据，必须先备份原系统及关键分区。
 
