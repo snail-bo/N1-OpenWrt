@@ -233,8 +233,10 @@ jobs:
           body: |
             iStoreOS 24.10 bypass-router builds for x86_64, Phicomm N1 and HiWiFi HC5962.
 
-            Default management address: 192.168.2.2
-            Upstream gateway/DNS: 192.168.2.1
+            x86_64/N1 management address: 192.168.2.2
+            x86_64/N1 upstream gateway and DNS: 192.168.2.1
+            HC5962 LAN management address: 192.168.3.1
+            HC5962 WAN/WAN6: DHCP/DHCPv6
             Username: root
 
             x86_64/N1 include daed with kernel BTF/XDP support.
