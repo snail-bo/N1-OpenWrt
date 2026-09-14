@@ -107,6 +107,8 @@ jobs:
             grep -qx 'CONFIG_PACKAGE_luci-app-passwall=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y' .config
             grep -qx 'CONFIG_PACKAGE_sing-box=y' .config
+            grep -qx 'CONFIG_PACKAGE_dnsmasq-full=y' .config
+            ! grep -qx 'CONFIG_PACKAGE_dnsmasq=y' .config
             ! grep -Eq '^CONFIG_PACKAGE_(daed|luci-app-daede|xray-core|kmod-mt7603|kmod-mt76x2|kmod-mt76)=y$' .config
           fi
 
