@@ -89,17 +89,20 @@ jobs:
           ! grep -Eq '^CONFIG_PACKAGE_(luci-app-samba4|samba4-server|luci-app-ksmbd|ksmbd-server|luci-app-dockerman|dockerd|podman)=y$' .config
           ! grep -Eq '^CONFIG_PACKAGE_(wpad|wpad-basic-mbedtls|wpad-basic-wolfssl|hostapd|kmod-mac80211|kmod-cfg80211)=y$' .config
           if [ '${{ matrix.platform }}' = x86_64 ]; then
+            grep -qx 'GO_VERSION_MAJOR_MINOR:=1.24' feeds/packages/lang/golang/golang/Makefile
             grep -qx 'CONFIG_TARGET_x86_64=y' .config
             grep -qx 'CONFIG_PACKAGE_daed=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
             grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
           elif [ '${{ matrix.platform }}' = n1 ]; then
+            grep -qx 'GO_VERSION_MAJOR_MINOR:=1.24' feeds/packages/lang/golang/golang/Makefile
             grep -qx 'CONFIG_TARGET_armsr_armv8=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-amlogic=y' .config
             grep -qx 'CONFIG_PACKAGE_daed=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
             grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
           else
+            grep -qx 'GO_VERSION_MAJOR_MINOR:=1.25' feeds/packages/lang/golang/golang/Makefile
             grep -qx 'CONFIG_TARGET_ramips_mt7621_DEVICE_hiwifi_hc5962=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-passwall=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y' .config

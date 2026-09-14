@@ -5,7 +5,8 @@ platform="${1:?platform is required}"
 daede_revision=542e86e84e4baec51070e43ab810d0788ebf41d7
 daed_source_revision=4a519fcbaa7004e50e80a309c68d6811596468cf
 argon_revision=ddefe5f05ca334dba10d2d65d25ebf14e986ee88
-golang_revision=94dd0f5793debfee007f0581509640c392de7188
+golang24_revision=94dd0f5793debfee007f0581509640c392de7188
+golang25_revision=e952b860128acc1e2c09caeff657109522c04d08
 passwall_revision=3f4c9ce7fc507ba277a1c13af1aea046cae3f9d9
 passwall_packages_revision=e73ad1c77a96fdaa498807ff7bc717dc92c349ea
 
@@ -23,9 +24,14 @@ fetch_revision() {
 mkdir -p package/custom
 rm -rf package/custom/daede package/custom/argon package/custom/amlogic \
        package/custom/passwall package/custom/passwall-packages
-# daed's nested dae-core requires Go 1.24. Replace the iStoreOS 24.10
-# Go 1.23 feed with sbwml's OpenWrt 24.10-compatible Go 1.24 package.
+# daed needs Go 1.24, while the HC5962 PassWall build's sing-box 1.14
+# needs Go 1.25. Keep separate pinned toolchains so working builds stay stable.
 rm -rf feeds/packages/lang/golang
+if [ "$platform" = hc5962 ]; then
+  golang_revision="$golang25_revision"
+else
+  golang_revision="$golang24_revision"
+fi
 fetch_revision https://github.com/sbwml/packages_lang_golang.git "$golang_revision" feeds/packages/lang/golang
 if [ "$platform" = hc5962 ]; then
   fetch_revision https://github.com/Openwrt-Passwall/openwrt-passwall.git \
