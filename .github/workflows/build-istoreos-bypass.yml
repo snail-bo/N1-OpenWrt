@@ -97,13 +97,13 @@ jobs:
             grep -A2 "config interface 'wan'" files/etc/config/network | grep -q "option proto 'dhcp'"
             grep -A2 "config interface 'lan'" files/etc/config/network | grep -q "option device 'eth0'"
             grep -A2 "config interface 'wan'" files/etc/config/network | grep -q "option device 'eth1'"
-            grep -qx 'GO_VERSION_MAJOR_MINOR:=1.24' feeds/packages/lang/golang/golang/Makefile
+            grep -qx 'GO_VERSION_MAJOR_MINOR:=1.26' feeds/packages/lang/golang/golang/Makefile
             grep -qx 'CONFIG_TARGET_x86_64=y' .config
             grep -qx 'CONFIG_PACKAGE_daed=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
             grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
           elif [ '${{ matrix.platform }}' = n1 ]; then
-            grep -qx 'GO_VERSION_MAJOR_MINOR:=1.24' feeds/packages/lang/golang/golang/Makefile
+            grep -qx 'GO_VERSION_MAJOR_MINOR:=1.26' feeds/packages/lang/golang/golang/Makefile
             grep -qx 'CONFIG_TARGET_armsr_armv8=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-amlogic=y' .config
             grep -qx 'CONFIG_PACKAGE_daed=y' .config

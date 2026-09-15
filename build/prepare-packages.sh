@@ -2,9 +2,9 @@
 set -euo pipefail
 
 platform="${1:?platform is required}"
-daede_revision=542e86e84e4baec51070e43ab810d0788ebf41d7
+daede_revision=263503ae43a4336b753b44dd9ddd9553cf661071
 argon_revision=ddefe5f05ca334dba10d2d65d25ebf14e986ee88
-golang24_revision=94dd0f5793debfee007f0581509640c392de7188
+golang26_revision=3757065cca28b7fbe0e1667040412990770ca2f4
 golang25_revision=e952b860128acc1e2c09caeff657109522c04d08
 passwall_revision=3f4c9ce7fc507ba277a1c13af1aea046cae3f9d9
 passwall_packages_revision=e73ad1c77a96fdaa498807ff7bc717dc92c349ea
@@ -23,13 +23,13 @@ fetch_revision() {
 mkdir -p package/custom
 rm -rf package/custom/daede package/custom/argon package/custom/amlogic \
        package/custom/passwall package/custom/passwall-packages
-# daed needs Go 1.24, while the HC5962 PassWall build's sing-box 1.14
-# needs Go 1.25. Keep separate pinned toolchains so working builds stay stable.
+# The assembled daed 2026.09.12 source needs Go 1.26, while the HC5962
+# PassWall build remains pinned to its proven Go 1.25 toolchain.
 rm -rf feeds/packages/lang/golang
 if [ "$platform" = hc5962 ]; then
   golang_revision="$golang25_revision"
 else
-  golang_revision="$golang24_revision"
+  golang_revision="$golang26_revision"
 fi
 fetch_revision https://github.com/sbwml/packages_lang_golang.git "$golang_revision" feeds/packages/lang/golang
 if [ "$platform" = hc5962 ]; then
@@ -41,33 +41,14 @@ if [ "$platform" = hc5962 ]; then
   printf '%s\n' "$passwall_packages_revision" > package/custom/passwall-packages/.source-revision
 else
   fetch_revision https://github.com/kenzok8/openwrt-daede.git "$daede_revision" package/custom/daede
-  # Keep the package's original backend source, web asset and mirror hash as a
-  # tested set. Overriding only PKG_SOURCE_VERSION breaks the bundled Web UI.
-  # Export BPF variables before the first `go generate ./...` invocation.
-  python3 - <<'PY'
-from pathlib import Path
-
-path = Path('package/custom/daede/daed/Makefile')
-text = path.read_text()
-marker = "\t\tgo mod tidy ; \\\n"
-prefix = (
-    "\t\texport \\\n"
-    "\t\tBPF_CLANG=\"$(CLANG)\" \\\n"
-    "\t\tBPF_STRIP_FLAG=\"-strip=$(LLVM_STRIP)\" \\\n"
-    "\t\tBPF_CFLAGS=\"$(DAE_CFLAGS)\" \\\n"
-    "\t\tBPF_TARGET=\"bpfel,bpfeb\" \\\n"
-    "\t\tBPF_TRACE_TARGET=\"$(GO_ARCH)\" ; \\\n"
-)
-if marker not in text:
-    raise SystemExit('go mod tidy line not found')
-path.write_text(text.replace(marker, prefix + marker, 1))
-PY
-  daed_source_revision="$(sed -n 's/^PKG_SOURCE_VERSION:=//p' package/custom/daede/daed/Makefile)"
-  daed_web_version="$(sed -n 's/^PKG_WEB_VERSION:=//p' package/custom/daede/daed/Makefile)"
-  test -n "$daed_source_revision"
-  test -n "$daed_web_version"
-  printf '%s daed-package %s daed-source %s daed-web %s\n' \
-    "$daede_revision" "$daede_revision" "$daed_source_revision" "$daed_web_version" \
+  daed_version="$(sed -n 's/^PKG_VERSION:=//p' package/custom/daede/daed/Makefile)"
+  daed_source="$(sed -n 's/^PKG_SOURCE:=//p' package/custom/daede/daed/Makefile)"
+  daed_hash="$(sed -n 's/^PKG_HASH:=//p' package/custom/daede/daed/Makefile)"
+  test -n "$daed_version"
+  test -n "$daed_source"
+  test -n "$daed_hash"
+  printf '%s daed-version %s source %s sha256 %s\n' \
+    "$daede_revision" "$daed_version" "$daed_source" "$daed_hash" \
     > package/custom/daede/.source-revision
 fi
 fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" package/custom/argon

@@ -6,7 +6,7 @@
 - 斐讯 N1（Amlogic S905D）：使用 iStoreOS `armsr/armv8` rootfs 和 Ophub Flippy 6.12 内核打包。
 - 极路由 HiWiFi HC5962（MT7621）：生成 NAND `factory.bin` 与 `sysupgrade.bin`，保留独立 WAN 口和三个有线 LAN 口。
 
-x86_64 与 N1 内置 [daed](https://github.com/daeuniverse/daed)；HC5962 内置 PassWall，并只选择 sing-box 代理核心。所有固件均安装 `luci-theme-argon` 并将其设为默认主题，不包含 Wi-Fi、Samba/KSMBD、Docker 或 Podman。
+x86_64 与 N1 内置配套冻结源码构建的 daed `2026.09.12`（包含 Reality/uTLS 1.8.2 兼容修复）；HC5962 内置 PassWall，并只选择 sing-box 代理核心。所有固件均安装 `luci-theme-argon` 并将其设为默认主题，不包含 Wi-Fi、Samba/KSMBD、Docker 或 Podman。
 
 ## 默认网络
 
