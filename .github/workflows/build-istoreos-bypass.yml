@@ -102,6 +102,7 @@ jobs:
             grep -qx 'CONFIG_PACKAGE_daed=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
             grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
+            grep -qx 'CONFIG_KERNEL_TCP_CONG_BBR=y' .config
           elif [ '${{ matrix.platform }}' = n1 ]; then
             grep -qx 'GO_VERSION_MAJOR_MINOR:=1.26' feeds/packages/lang/golang/golang/Makefile
             grep -qx 'CONFIG_TARGET_armsr_armv8=y' .config
@@ -118,6 +119,7 @@ jobs:
             grep -qx 'CONFIG_PACKAGE_sing-box=y' .config
             grep -qx 'CONFIG_PACKAGE_dnsmasq-full=y' .config
             ! grep -qx 'CONFIG_PACKAGE_dnsmasq=y' .config
+            grep -qx 'CONFIG_KERNEL_TCP_CONG_BBR=y' .config
             ! grep -Eq '^CONFIG_PACKAGE_(daed|luci-app-daede|xray-core|kmod-mt7603|kmod-mt76x2|kmod-mt76)=y$' .config
           fi
 
