@@ -75,15 +75,10 @@ else
     "$daede_revision" "$daed_version" "$daed_source" "$daed_hash" \
     > package/custom/daede/.source-revision
 fi
-# luci.mk resolves PKG_NAME from the checkout directory name, so the theme
-# directory must be named luci-theme-argon for the seed symbol to survive
-# make defconfig.
-argon_dir=package/custom/argon
-if [ "$platform" = x86_64 ]; then
-  # LEDE may carry an older in-tree copy; keep one explicitly pinned package.
-  rm -rf package/lean/luci-theme-argon
-  argon_dir=package/custom/luci-theme-argon
-fi
+# luci.mk resolves PKG_NAME from the checkout directory name. All LEDE builds
+# therefore use this exact directory name, after removing any older in-tree copy.
+rm -rf package/lean/luci-theme-argon
+argon_dir=package/custom/luci-theme-argon
 fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" "$argon_dir"
 printf '%s\n' "$argon_revision" > "$argon_dir/.source-revision"
 

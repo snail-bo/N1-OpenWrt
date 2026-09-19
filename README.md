@@ -1,12 +1,12 @@
-# Lean LEDE / iStoreOS 旁路由自动构建
+# Lean LEDE 旁路由自动构建
 
-为以下平台生成轻量路由固件：x86_64 使用 [Lean LEDE](https://github.com/coolsnowwolf/lede) `master` 分支，N1 与 HC5962 继续使用 [iStoreOS](https://github.com/istoreos/istoreos) 的 `istoreos-24.10` 分支。
+基于 [Lean LEDE](https://github.com/coolsnowwolf/lede) `master` 分支，为以下平台生成轻量路由固件：
 
 - 通用 `x86_64`：基于 Lean LEDE，同时生成传统 BIOS 与 UEFI 磁盘镜像。
-- 斐讯 N1（Amlogic S905D）：使用 iStoreOS `armsr/armv8` rootfs 和 Ophub Flippy 6.12 内核打包。
+- 斐讯 N1（Amlogic S905D）：使用 Lean LEDE `armsr/armv8` rootfs 和 Ophub Flippy 6.12 内核打包。
 - 极路由 HiWiFi HC5962（MT7621）：生成 NAND `factory.bin` 与 `sysupgrade.bin`，保留独立 WAN 口和三个有线 LAN 口。
 
-x86_64 与 N1 内置配套冻结源码构建的 daed `2026.09.12`（包含 Reality/uTLS 1.8.2 兼容修复）；HC5962 内置 PassWall，并只选择 sing-box 代理核心。所有固件均安装 `luci-theme-argon` 并将其设为默认主题，不包含 Wi-Fi、Samba/KSMBD、Docker 或 Podman。
+x86_64 与 N1 内置配套冻结源码构建的 daed `2026.09.19`；HC5962 内置 PassWall，并只选择 sing-box 代理核心。所有固件均安装 `luci-theme-argon` 并将其设为默认主题，不包含 Wi-Fi、Samba/KSMBD、Docker 或 Podman。
 
 ## 默认网络
 
@@ -59,7 +59,7 @@ daed --version
 - 修改 `.github/`、`build/`、`platforms/` 或 README 后推送到 `master` 自动触发。
 - 每月 1 日和 16 日北京时间 08:00 自动构建。
 - 支持在 Actions 页面手动运行。
-- Release 标签为 `istoreos-bypass_<日期>_<运行序号>`。
+- Release 标签为 `lede-bypass_<日期>_<运行序号>`。
 - Release 同时包含固件、最终 `.config`、源码版本和 SHA-256 校验文件。
 
 目录结构：
@@ -86,8 +86,8 @@ x86_64 镜像需要先解压 `.img.gz`，再写入独立磁盘；根据机器启
 
 N1 建议先从 U 盘启动验证网卡、BTF、daed 和重启功能，确认正常后再通过 Amlogic Service 写入 eMMC。写盘会覆盖目标设备数据，必须先备份原系统及关键分区。
 
-HC5962 首次从原厂系统刷入时使用 `factory.bin`；已经运行兼容 OpenWrt/iStoreOS 时才使用 `sysupgrade.bin`。刷机前必须备份 bootloader、factory、bdinfo 等原始分区，并核对具体硬件型号。
+HC5962 首次从原厂系统刷入时使用 `factory.bin`；已经运行兼容 OpenWrt/LEDE 时才使用 `sysupgrade.bin`。刷机前必须备份 bootloader、factory、bdinfo 等原始分区，并核对具体硬件型号。
 
 ## 上游项目
 
-[Lean LEDE](https://github.com/coolsnowwolf/lede) · [iStoreOS](https://github.com/istoreos/istoreos) · [daed](https://github.com/daeuniverse/daed) · [Openwrt-Passwall](https://github.com/Openwrt-Passwall/openwrt-passwall) · [openwrt-daede](https://github.com/kenzok8/openwrt-daede) · [amlogic-s9xxx-openwrt](https://github.com/ophub/amlogic-s9xxx-openwrt)
+[Lean LEDE](https://github.com/coolsnowwolf/lede) · [daed](https://github.com/daeuniverse/daed) · [Openwrt-Passwall](https://github.com/Openwrt-Passwall/openwrt-passwall) · [openwrt-daede](https://github.com/kenzok8/openwrt-daede) · [amlogic-s9xxx-openwrt](https://github.com/ophub/amlogic-s9xxx-openwrt)

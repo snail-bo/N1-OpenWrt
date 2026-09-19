@@ -20,8 +20,6 @@ permissions:
   contents: write
 
 env:
-  ISTOREOS_REPO: https://github.com/istoreos/istoreos.git
-  ISTOREOS_BRANCH: istoreos-24.10
   LEDE_REPO: https://github.com/coolsnowwolf/lede.git
   LEDE_BRANCH: master
   TZ: Asia/Shanghai
@@ -57,15 +55,9 @@ jobs:
         working-directory: /workdir
         run: |
           set -euo pipefail
-          if [ '${{ matrix.platform }}' = x86_64 ]; then
-            source_repo="$LEDE_REPO"
-            source_ref="$LEDE_BRANCH"
-            source_name='Lean LEDE'
-          else
-            source_repo="$ISTOREOS_REPO"
-            source_ref="$ISTOREOS_BRANCH"
-            source_name=iStoreOS
-          fi
+          source_repo="$LEDE_REPO"
+          source_ref="$LEDE_BRANCH"
+          source_name='Lean LEDE'
           git clone --depth=1 --single-branch --branch "$source_ref" "$source_repo" openwrt
           ln -s /workdir/openwrt "$GITHUB_WORKSPACE/openwrt"
           echo "SOURCE_COMMIT=$(git -C openwrt rev-parse HEAD)" >> "$GITHUB_ENV"
@@ -224,7 +216,7 @@ jobs:
           printf '%s %s (%s)\ndaede %s\nargon %s\n' \
             "$SOURCE_NAME" "$SOURCE_COMMIT" "$SOURCE_REF" \
             "$(cat openwrt/package/custom/daede/.source-revision)" \
-            "$(cat openwrt/package/custom/argon/.source-revision)" > output/source-versions-n1.txt
+            "$(cat openwrt/package/custom/luci-theme-argon/.source-revision)" > output/source-versions-n1.txt
           cd output
           sha256sum -- * > sha256sums-n1.txt
           ls -lh
@@ -242,13 +234,13 @@ jobs:
             "$SOURCE_NAME" "$SOURCE_COMMIT" "$SOURCE_REF" \
             "$(cat openwrt/package/custom/passwall/.source-revision)" \
             "$(cat openwrt/package/custom/passwall-packages/.source-revision)" \
-            "$(cat openwrt/package/custom/argon/.source-revision)" > output/source-versions-hc5962.txt
+            "$(cat openwrt/package/custom/luci-theme-argon/.source-revision)" > output/source-versions-hc5962.txt
           ls -lh output
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: istoreos-${{ matrix.platform }}
+          name: lede-${{ matrix.platform }}
           path: output/*
           if-no-files-found: error
           retention-days: 7
@@ -261,7 +253,7 @@ jobs:
       - name: Download firmware artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: istoreos-*
+          pattern: lede-*
           path: release
           merge-multiple: true
 
@@ -271,10 +263,10 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: istoreos-bypass_${{ env.FILE_DATE }}_${{ github.run_number }}
+          tag_name: lede-bypass_${{ env.FILE_DATE }}_${{ github.run_number }}
           files: release/*
           body: |
-            Lean LEDE master build for x86_64; iStoreOS 24.10 builds for Phicomm N1 and HiWiFi HC5962.
+            Lean LEDE master builds for x86_64, Phicomm N1 and HiWiFi HC5962.
 
             x86_64 LAN (eth0): 192.168.9.150
             x86_64 WAN/WAN6 (eth1): DHCP/DHCPv6
