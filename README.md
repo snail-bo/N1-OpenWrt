@@ -1,8 +1,8 @@
-# iStoreOS 旁路由自动构建
+# OpenWrt / iStoreOS 旁路由自动构建
 
-基于 [iStoreOS](https://github.com/istoreos/istoreos) 当前维护的 `istoreos-24.10` 分支，为以下平台生成轻量路由固件：
+为以下平台生成轻量路由固件：x86_64 固定使用官方 [OpenWrt](https://github.com/openwrt/openwrt) `v24.10.8`，N1 与 HC5962 继续使用 [iStoreOS](https://github.com/istoreos/istoreos) 的 `istoreos-24.10` 分支。
 
-- 通用 `x86_64`：同时生成传统 BIOS 与 UEFI 磁盘镜像。
+- 通用 `x86_64`：基于官方 OpenWrt 24.10.8，同时生成传统 BIOS 与 UEFI 磁盘镜像。
 - 斐讯 N1（Amlogic S905D）：使用 iStoreOS `armsr/armv8` rootfs 和 Ophub Flippy 6.12 内核打包。
 - 极路由 HiWiFi HC5962（MT7621）：生成 NAND `factory.bin` 与 `sysupgrade.bin`，保留独立 WAN 口和三个有线 LAN 口。
 
@@ -54,7 +54,7 @@ daed --version
 
 ## 自动构建
 
-工作流 `Build iStoreOS bypass routers` 使用矩阵并行构建 x86_64、N1 与 HC5962，并在全部成功后发布到同一个 Release。
+工作流 `Build bypass routers` 使用矩阵并行构建 x86_64、N1 与 HC5962，并在全部成功后发布到同一个 Release。
 
 - 修改 `.github/`、`build/`、`platforms/` 或 README 后推送到 `master` 自动触发。
 - 每月 1 日和 16 日北京时间 08:00 自动构建。

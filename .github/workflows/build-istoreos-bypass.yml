@@ -1,4 +1,4 @@
-name: Build iStoreOS bypass routers
+name: Build bypass routers
 
 on:
   push:
@@ -20,8 +20,10 @@ permissions:
   contents: write
 
 env:
-  SOURCE_REPO: https://github.com/istoreos/istoreos.git
-  SOURCE_BRANCH: istoreos-24.10
+  ISTOREOS_REPO: https://github.com/istoreos/istoreos.git
+  ISTOREOS_BRANCH: istoreos-24.10
+  OPENWRT_REPO: https://github.com/openwrt/openwrt.git
+  OPENWRT_TAG: v24.10.8
   TZ: Asia/Shanghai
 
 jobs:
@@ -51,13 +53,24 @@ jobs:
           sudo mkdir -p /workdir
           sudo chown "$USER":"$(id -gn)" /workdir
 
-      - name: Clone iStoreOS
+      - name: Clone platform source
         working-directory: /workdir
         run: |
           set -euo pipefail
-          git clone --depth=1 --single-branch --branch "$SOURCE_BRANCH" "$SOURCE_REPO" openwrt
+          if [ '${{ matrix.platform }}' = x86_64 ]; then
+            source_repo="$OPENWRT_REPO"
+            source_ref="$OPENWRT_TAG"
+            source_name=OpenWrt
+          else
+            source_repo="$ISTOREOS_REPO"
+            source_ref="$ISTOREOS_BRANCH"
+            source_name=iStoreOS
+          fi
+          git clone --depth=1 --single-branch --branch "$source_ref" "$source_repo" openwrt
           ln -s /workdir/openwrt "$GITHUB_WORKSPACE/openwrt"
           echo "SOURCE_COMMIT=$(git -C openwrt rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "SOURCE_NAME=$source_name" >> "$GITHUB_ENV"
+          echo "SOURCE_REF=$source_ref" >> "$GITHUB_ENV"
 
       - name: Restore compiler cache
         uses: actions/cache@v4
@@ -102,7 +115,8 @@ jobs:
             grep -qx 'CONFIG_PACKAGE_daed=y' .config
             grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
             grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
-            grep -qx 'CONFIG_KERNEL_TCP_CONG_BBR=y' .config
+            grep -qx 'CONFIG_PACKAGE_kmod-tcp-bbr=y' .config
+            grep -qx 'CONFIG_PACKAGE_kmod-sched=y' .config
           elif [ '${{ matrix.platform }}' = n1 ]; then
             grep -qx 'GO_VERSION_MAJOR_MINOR:=1.26' feeds/packages/lang/golang/golang/Makefile
             grep -qx 'CONFIG_TARGET_armsr_armv8=y' .config
@@ -119,7 +133,8 @@ jobs:
             grep -qx 'CONFIG_PACKAGE_sing-box=y' .config
             grep -qx 'CONFIG_PACKAGE_dnsmasq-full=y' .config
             ! grep -qx 'CONFIG_PACKAGE_dnsmasq=y' .config
-            grep -qx 'CONFIG_KERNEL_TCP_CONG_BBR=y' .config
+            grep -qx 'CONFIG_PACKAGE_kmod-tcp-bbr=y' .config
+            grep -qx 'CONFIG_PACKAGE_kmod-sched=y' .config
             ! grep -Eq '^CONFIG_PACKAGE_(daed|luci-app-daede|xray-core|kmod-mt7603|kmod-mt76x2|kmod-mt76)=y$' .config
           fi
 
@@ -164,8 +179,8 @@ jobs:
           cp "$target"/*combined*.img.gz output/
           cp openwrt/.config output/x86_64.config
           cp "$target"/sha256sums output/
-          printf 'iStoreOS %s\ndaede %s\nargon %s\n' \
-            "$SOURCE_COMMIT" \
+          printf '%s %s (%s)\ndaede %s\nargon %s\n' \
+            "$SOURCE_NAME" "$SOURCE_COMMIT" "$SOURCE_REF" \
             "$(cat openwrt/package/custom/daede/.source-revision)" \
             "$(cat openwrt/package/custom/argon/.source-revision)" > output/source-versions.txt
           ls -lh output
@@ -189,8 +204,8 @@ jobs:
           mkdir -p output
           cp "${PACKAGED_OUTPUTPATH}"/*.img.gz output/
           cp openwrt/.config output/n1.config
-          printf 'iStoreOS %s\ndaede %s\nargon %s\n' \
-            "$SOURCE_COMMIT" \
+          printf '%s %s (%s)\ndaede %s\nargon %s\n' \
+            "$SOURCE_NAME" "$SOURCE_COMMIT" "$SOURCE_REF" \
             "$(cat openwrt/package/custom/daede/.source-revision)" \
             "$(cat openwrt/package/custom/argon/.source-revision)" > output/source-versions-n1.txt
           cd output
@@ -206,8 +221,8 @@ jobs:
           cp "$target"/*hiwifi_hc5962*.bin output/
           cp openwrt/.config output/hc5962.config
           cp "$target"/sha256sums output/
-          printf 'iStoreOS %s\nPassWall %s\nPassWall packages %s\nargon %s\n' \
-            "$SOURCE_COMMIT" \
+          printf '%s %s (%s)\nPassWall %s\nPassWall packages %s\nargon %s\n' \
+            "$SOURCE_NAME" "$SOURCE_COMMIT" "$SOURCE_REF" \
             "$(cat openwrt/package/custom/passwall/.source-revision)" \
             "$(cat openwrt/package/custom/passwall-packages/.source-revision)" \
             "$(cat openwrt/package/custom/argon/.source-revision)" > output/source-versions-hc5962.txt
@@ -242,7 +257,7 @@ jobs:
           tag_name: istoreos-bypass_${{ env.FILE_DATE }}_${{ github.run_number }}
           files: release/*
           body: |
-            iStoreOS 24.10 bypass-router builds for x86_64, Phicomm N1 and HiWiFi HC5962.
+            OpenWrt 24.10.8 build for x86_64; iStoreOS 24.10 builds for Phicomm N1 and HiWiFi HC5962.
 
             x86_64 LAN (eth0): 192.168.9.150
             x86_64 WAN/WAN6 (eth1): DHCP/DHCPv6
