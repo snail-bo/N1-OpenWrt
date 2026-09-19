@@ -199,7 +199,7 @@ jobs:
           printf '%s %s (%s)\ndaede %s\nargon %s\n' \
             "$SOURCE_NAME" "$SOURCE_COMMIT" "$SOURCE_REF" \
             "$(cat openwrt/package/custom/daede/.source-revision)" \
-            "$(cat openwrt/package/custom/argon/.source-revision)" > output/source-versions.txt
+            "$(cat openwrt/package/custom/luci-theme-argon/.source-revision)" > output/source-versions.txt
           ls -lh output
 
       - name: Package N1 image

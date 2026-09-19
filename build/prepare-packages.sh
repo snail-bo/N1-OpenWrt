@@ -22,8 +22,8 @@ fetch_revision() {
 }
 
 mkdir -p package/custom
-rm -rf package/custom/daede package/custom/argon package/custom/amlogic \
-       package/custom/passwall package/custom/passwall-packages
+rm -rf package/custom/daede package/custom/argon package/custom/luci-theme-argon \
+       package/custom/amlogic package/custom/passwall package/custom/passwall-packages
 # The assembled daed 2026.09.12 source needs Go 1.26, while the HC5962
 # PassWall build remains pinned to its proven Go 1.25 toolchain.
 rm -rf feeds/packages/lang/golang
@@ -52,16 +52,21 @@ else
     "$daede_revision" "$daed_version" "$daed_source" "$daed_hash" \
     > package/custom/daede/.source-revision
 fi
+# luci.mk resolves PKG_NAME from the checkout directory name, so the theme
+# directory must be named luci-theme-argon for the seed symbol to survive
+# make defconfig.
+argon_dir=package/custom/argon
 if [ "$platform" = x86_64 ]; then
   # Argon 2.4.x targets current snapshots and uses USE_APK/wget-any dependency
   # expressions that OpenWrt 24.10 cannot resolve. 2.3.2 is the last stable
   # release using the compatible curl/jsonfilter dependency set.
   argon_revision="$argon_openwrt24_revision"
+  argon_dir=package/custom/luci-theme-argon
 fi
-fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" package/custom/argon
-grep -q '^LUCI_DEPENDS:=+curl +jsonfilter$' package/custom/argon/Makefile || \
+fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" "$argon_dir"
+grep -q '^LUCI_DEPENDS:=+curl +jsonfilter$' "$argon_dir/Makefile" || \
   [ "$platform" != x86_64 ]
-printf '%s\n' "$argon_revision" > package/custom/argon/.source-revision
+printf '%s\n' "$argon_revision" > "$argon_dir/.source-revision"
 
 if [ "$platform" = n1 ]; then
   git clone --depth=1 https://github.com/ophub/luci-app-amlogic.git package/custom/amlogic
@@ -86,7 +91,7 @@ if [ "$platform" = hc5962 ]; then
     feeds/packages/net/v2ray-geodata
 fi
 
-echo "==> Argon theme source: $argon_revision"
+echo "==> Argon theme source: $argon_revision ($argon_dir)"
 echo "==> Go toolchain source: $golang_revision"
 if [ "$platform" = hc5962 ]; then
   echo "==> PassWall source: $passwall_revision"
