@@ -52,7 +52,19 @@ else
     > package/custom/daede/.source-revision
 fi
 fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" package/custom/argon
-printf '%s\n' "$argon_revision" > package/custom/argon/.source-revision
+if [ "$platform" = x86_64 ]; then
+  # OpenWrt 24.10 provides wget through wget-ssl/wget-nossl variants and has no
+  # selectable `wget` package symbol. Select the TLS variant explicitly so the
+  # latest Argon package remains visible to Kconfig.
+  sed -i \
+    's/+USE_APK:wget-any +!USE_APK:wget/+wget-ssl/' \
+    package/custom/argon/Makefile
+  grep -q '^LUCI_DEPENDS:=+wget-ssl +jsonfilter$' package/custom/argon/Makefile
+  printf '%s openwrt-24.10-dependency wget-ssl\n' "$argon_revision" \
+    > package/custom/argon/.source-revision
+else
+  printf '%s\n' "$argon_revision" > package/custom/argon/.source-revision
+fi
 
 if [ "$platform" = n1 ]; then
   git clone --depth=1 https://github.com/ophub/luci-app-amlogic.git package/custom/amlogic
