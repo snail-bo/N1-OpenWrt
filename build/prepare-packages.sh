@@ -53,14 +53,16 @@ else
 fi
 fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" package/custom/argon
 if [ "$platform" = x86_64 ]; then
-  # OpenWrt 24.10 provides wget through wget-ssl/wget-nossl variants and has no
-  # selectable `wget` package symbol. Select the TLS variant explicitly so the
-  # latest Argon package remains visible to Kconfig.
+  # Argon's current Makefile uses the snapshot-only USE_APK/wget-any syntax.
+  # OpenWrt 24.10 does not define USE_APK or wget-any, which makes Kconfig hide
+  # the complete theme package. wget-ssl is selected explicitly by config.seed,
+  # so keep only the real package dependency here.
   sed -i \
-    's/+USE_APK:wget-any +!USE_APK:wget/+wget-ssl/' \
+    's/+USE_APK:wget-any +!USE_APK:wget //' \
     package/custom/argon/Makefile
-  grep -q '^LUCI_DEPENDS:=+wget-ssl +jsonfilter$' package/custom/argon/Makefile
-  printf '%s openwrt-24.10-dependency wget-ssl\n' "$argon_revision" \
+  grep -q '^LUCI_DEPENDS:=+jsonfilter$' package/custom/argon/Makefile
+  ! grep -Eq 'USE_APK|wget-any|!USE_APK' package/custom/argon/Makefile
+  printf '%s openwrt-24.10-dependency jsonfilter; wget-ssl selected explicitly\n' "$argon_revision" \
     > package/custom/argon/.source-revision
 else
   printf '%s\n' "$argon_revision" > package/custom/argon/.source-revision

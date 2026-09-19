@@ -106,6 +106,10 @@ jobs:
           require_config() {
             if ! grep -Fqx "$1" .config; then
               echo "::error title=Missing build configuration::$1"
+              if [ "$1" = 'CONFIG_PACKAGE_luci-theme-argon=y' ]; then
+                grep -R -n -E 'Package: luci-theme-argon|Depends:.*(wget|jsonfilter)|CONFIG_PACKAGE_luci-theme-argon' \
+                  tmp/.packageinfo tmp/.config-package.in .config 2>/dev/null || true
+              fi
               return 1
             fi
           }
@@ -119,6 +123,7 @@ jobs:
           ! grep -Eq '^CONFIG_PACKAGE_(luci-app-samba4|samba4-server|luci-app-ksmbd|ksmbd-server|luci-app-dockerman|dockerd|podman)=y$' .config
           ! grep -Eq '^CONFIG_PACKAGE_(wpad|wpad-basic-mbedtls|wpad-basic-wolfssl|hostapd|kmod-mac80211|kmod-cfg80211)=y$' .config
           if [ '${{ matrix.platform }}' = x86_64 ]; then
+            require_config 'CONFIG_PACKAGE_wget-ssl=y'
             grep -A2 "config interface 'wan'" files/etc/config/network | grep -q "option proto 'dhcp'"
             grep -A2 "config interface 'lan'" files/etc/config/network | grep -q "option device 'eth0'"
             grep -A2 "config interface 'wan'" files/etc/config/network | grep -q "option device 'eth1'"
