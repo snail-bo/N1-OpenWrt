@@ -22,8 +22,8 @@ permissions:
 env:
   ISTOREOS_REPO: https://github.com/istoreos/istoreos.git
   ISTOREOS_BRANCH: istoreos-24.10
-  OPENWRT_REPO: https://github.com/openwrt/openwrt.git
-  OPENWRT_TAG: v24.10.8
+  LEDE_REPO: https://github.com/coolsnowwolf/lede.git
+  LEDE_BRANCH: master
   TZ: Asia/Shanghai
 
 jobs:
@@ -58,9 +58,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ '${{ matrix.platform }}' = x86_64 ]; then
-            source_repo="$OPENWRT_REPO"
-            source_ref="$OPENWRT_TAG"
-            source_name=OpenWrt
+            source_repo="$LEDE_REPO"
+            source_ref="$LEDE_BRANCH"
+            source_name='Lean LEDE'
           else
             source_repo="$ISTOREOS_REPO"
             source_ref="$ISTOREOS_BRANCH"
@@ -76,9 +76,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: istoreos-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('build/**', 'platforms/**') }}
+          key: bypass-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('build/**', 'platforms/**') }}
           restore-keys: |
-            istoreos-${{ runner.os }}-${{ matrix.platform }}-
+            bypass-${{ runner.os }}-${{ matrix.platform }}-
 
       - name: Prepare feeds and platform packages
         run: |
@@ -274,7 +274,7 @@ jobs:
           tag_name: istoreos-bypass_${{ env.FILE_DATE }}_${{ github.run_number }}
           files: release/*
           body: |
-            OpenWrt 24.10.8 build for x86_64; iStoreOS 24.10 builds for Phicomm N1 and HiWiFi HC5962.
+            Lean LEDE master build for x86_64; iStoreOS 24.10 builds for Phicomm N1 and HiWiFi HC5962.
 
             x86_64 LAN (eth0): 192.168.9.150
             x86_64 WAN/WAN6 (eth1): DHCP/DHCPv6

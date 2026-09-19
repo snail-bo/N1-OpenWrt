@@ -1,8 +1,8 @@
-# OpenWrt / iStoreOS 旁路由自动构建
+# Lean LEDE / iStoreOS 旁路由自动构建
 
-为以下平台生成轻量路由固件：x86_64 固定使用官方 [OpenWrt](https://github.com/openwrt/openwrt) `v24.10.8`，N1 与 HC5962 继续使用 [iStoreOS](https://github.com/istoreos/istoreos) 的 `istoreos-24.10` 分支。
+为以下平台生成轻量路由固件：x86_64 使用 [Lean LEDE](https://github.com/coolsnowwolf/lede) `master` 分支，N1 与 HC5962 继续使用 [iStoreOS](https://github.com/istoreos/istoreos) 的 `istoreos-24.10` 分支。
 
-- 通用 `x86_64`：基于官方 OpenWrt 24.10.8，同时生成传统 BIOS 与 UEFI 磁盘镜像。
+- 通用 `x86_64`：基于 Lean LEDE，同时生成传统 BIOS 与 UEFI 磁盘镜像。
 - 斐讯 N1（Amlogic S905D）：使用 iStoreOS `armsr/armv8` rootfs 和 Ophub Flippy 6.12 内核打包。
 - 极路由 HiWiFi HC5962（MT7621）：生成 NAND `factory.bin` 与 `sysupgrade.bin`，保留独立 WAN 口和三个有线 LAN 口。
 
@@ -90,4 +90,4 @@ HC5962 首次从原厂系统刷入时使用 `factory.bin`；已经运行兼容 O
 
 ## 上游项目
 
-[iStoreOS](https://github.com/istoreos/istoreos) · [daed](https://github.com/daeuniverse/daed) · [Openwrt-Passwall](https://github.com/Openwrt-Passwall/openwrt-passwall) · [openwrt-daede](https://github.com/kenzok8/openwrt-daede) · [amlogic-s9xxx-openwrt](https://github.com/ophub/amlogic-s9xxx-openwrt)
+[Lean LEDE](https://github.com/coolsnowwolf/lede) · [iStoreOS](https://github.com/istoreos/istoreos) · [daed](https://github.com/daeuniverse/daed) · [Openwrt-Passwall](https://github.com/Openwrt-Passwall/openwrt-passwall) · [openwrt-daede](https://github.com/kenzok8/openwrt-daede) · [amlogic-s9xxx-openwrt](https://github.com/ophub/amlogic-s9xxx-openwrt)
