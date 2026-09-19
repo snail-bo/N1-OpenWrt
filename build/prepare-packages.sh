@@ -4,6 +4,7 @@ set -euo pipefail
 platform="${1:?platform is required}"
 daede_revision=263503ae43a4336b753b44dd9ddd9553cf661071
 argon_revision=ddefe5f05ca334dba10d2d65d25ebf14e986ee88
+argon_openwrt24_revision=3e58e9f292145d7279074df72e924686c5ad0839
 golang26_revision=3757065cca28b7fbe0e1667040412990770ca2f4
 golang25_revision=e952b860128acc1e2c09caeff657109522c04d08
 passwall_revision=3f4c9ce7fc507ba277a1c13af1aea046cae3f9d9
@@ -51,22 +52,16 @@ else
     "$daede_revision" "$daed_version" "$daed_source" "$daed_hash" \
     > package/custom/daede/.source-revision
 fi
-fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" package/custom/argon
 if [ "$platform" = x86_64 ]; then
-  # Argon's current Makefile uses the snapshot-only USE_APK/wget-any syntax.
-  # OpenWrt 24.10 does not define USE_APK or wget-any, which makes Kconfig hide
-  # the complete theme package. wget-ssl is selected explicitly by config.seed,
-  # so keep only the real package dependency here.
-  sed -i \
-    's/+USE_APK:wget-any +!USE_APK:wget //' \
-    package/custom/argon/Makefile
-  grep -q '^LUCI_DEPENDS:=+jsonfilter$' package/custom/argon/Makefile
-  ! grep -Eq 'USE_APK|wget-any|!USE_APK' package/custom/argon/Makefile
-  printf '%s openwrt-24.10-dependency jsonfilter; wget-ssl selected explicitly\n' "$argon_revision" \
-    > package/custom/argon/.source-revision
-else
-  printf '%s\n' "$argon_revision" > package/custom/argon/.source-revision
+  # Argon 2.4.x targets current snapshots and uses USE_APK/wget-any dependency
+  # expressions that OpenWrt 24.10 cannot resolve. 2.3.2 is the last stable
+  # release using the compatible curl/jsonfilter dependency set.
+  argon_revision="$argon_openwrt24_revision"
 fi
+fetch_revision https://github.com/jerrykuku/luci-theme-argon.git "$argon_revision" package/custom/argon
+grep -q '^LUCI_DEPENDS:=+curl +jsonfilter$' package/custom/argon/Makefile || \
+  [ "$platform" != x86_64 ]
+printf '%s\n' "$argon_revision" > package/custom/argon/.source-revision
 
 if [ "$platform" = n1 ]; then
   git clone --depth=1 https://github.com/ophub/luci-app-amlogic.git package/custom/amlogic
