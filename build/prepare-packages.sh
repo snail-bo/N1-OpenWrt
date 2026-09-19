@@ -42,9 +42,33 @@ if [ "$platform" = hc5962 ]; then
   printf '%s\n' "$passwall_packages_revision" > package/custom/passwall-packages/.source-revision
 else
   fetch_revision https://github.com/kenzok8/openwrt-daede.git "$daede_revision" package/custom/daede
-  daed_version="$(sed -n 's/^PKG_VERSION:=//p' package/custom/daede/daed/Makefile)"
-  daed_source="$(sed -n 's/^PKG_SOURCE:=//p' package/custom/daede/daed/Makefile)"
-  daed_hash="$(sed -n 's/^PKG_HASH:=//p' package/custom/daede/daed/Makefile)"
+  # daed sources live in a rolling release whose assets are pruned after a few
+  # publishes, so the pin inside the checked-out Makefile can 404 at any time.
+  # Pin the coordinates explicitly and fall back to the newest published asset
+  # once even this pin has been rotated away.
+  daed_makefile=package/custom/daede/daed/Makefile
+  daed_version=2026.09.19
+  daed_source=daed-src-2026.09.19-484617a870e6.tar.gz
+  daed_hash=484617a870e6430e9c8265dd36aa58c8441a18407c16bc95bae6a5aa06366be9
+  daed_url="$(sed -n 's/^PKG_SOURCE_URL:=//p' "$daed_makefile")"
+  if ! curl -fsSLI "$daed_url/$daed_source" >/dev/null; then
+    echo "==> daed asset $daed_source is gone; resolving the newest published one"
+    daed_source="$(curl -fsSL https://github.com/kenzok8/openwrt-daede/releases/expanded_assets/daed-src \
+      | grep -o 'daed-src-[0-9][^"]*\.tar\.gz' | sort -u | tail -n1)"
+    test -n "$daed_source"
+    daed_version="$(printf '%s' "$daed_source" | sed -n 's/^daed-src-\([0-9.]*\)-.*\.tar\.gz$/\1/p')"
+    mkdir -p dl
+    curl -fsSL -o "dl/$daed_source" "$daed_url/$daed_source"
+    daed_hash="$(sha256sum "dl/$daed_source" | cut -d' ' -f1)"
+  fi
+  sed -i \
+    -e "s|^PKG_VERSION:=.*|PKG_VERSION:=$daed_version|" \
+    -e "s|^PKG_SOURCE:=.*|PKG_SOURCE:=$daed_source|" \
+    -e "s|^PKG_HASH:=.*|PKG_HASH:=$daed_hash|" \
+    "$daed_makefile"
+  daed_version="$(sed -n 's/^PKG_VERSION:=//p' "$daed_makefile")"
+  daed_source="$(sed -n 's/^PKG_SOURCE:=//p' "$daed_makefile")"
+  daed_hash="$(sed -n 's/^PKG_HASH:=//p' "$daed_makefile")"
   test -n "$daed_version"
   test -n "$daed_source"
   test -n "$daed_hash"
