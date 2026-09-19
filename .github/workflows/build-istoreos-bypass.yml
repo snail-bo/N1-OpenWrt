@@ -90,7 +90,7 @@ jobs:
 
       - name: Load and verify configuration
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           cd openwrt
           cp "$GITHUB_WORKSPACE/platforms/${{ matrix.platform }}/config.seed" .config
           rm -rf files
@@ -103,20 +103,33 @@ jobs:
             grep -q "option ipaddr '192.168.3.1'" files/etc/config/network
           fi
           make defconfig
-          grep -qx 'CONFIG_PACKAGE_luci-theme-argon=y' .config
+          require_config() {
+            if ! grep -Fqx "$1" .config; then
+              echo "::error title=Missing build configuration::$1"
+              return 1
+            fi
+          }
+          require_line() {
+            if ! grep -Fqx "$2" "$1"; then
+              echo "::error title=Missing expected source setting::$2 is absent from $1"
+              return 1
+            fi
+          }
+          require_config 'CONFIG_PACKAGE_luci-theme-argon=y'
           ! grep -Eq '^CONFIG_PACKAGE_(luci-app-samba4|samba4-server|luci-app-ksmbd|ksmbd-server|luci-app-dockerman|dockerd|podman)=y$' .config
           ! grep -Eq '^CONFIG_PACKAGE_(wpad|wpad-basic-mbedtls|wpad-basic-wolfssl|hostapd|kmod-mac80211|kmod-cfg80211)=y$' .config
           if [ '${{ matrix.platform }}' = x86_64 ]; then
             grep -A2 "config interface 'wan'" files/etc/config/network | grep -q "option proto 'dhcp'"
             grep -A2 "config interface 'lan'" files/etc/config/network | grep -q "option device 'eth0'"
             grep -A2 "config interface 'wan'" files/etc/config/network | grep -q "option device 'eth1'"
-            grep -qx 'GO_VERSION_MAJOR_MINOR:=1.26' feeds/packages/lang/golang/golang/Makefile
-            grep -qx 'CONFIG_TARGET_x86_64=y' .config
-            grep -qx 'CONFIG_PACKAGE_daed=y' .config
-            grep -qx 'CONFIG_PACKAGE_luci-app-daede=y' .config
-            grep -qx 'CONFIG_KERNEL_DEBUG_INFO_BTF=y' .config
-            grep -qx 'CONFIG_PACKAGE_kmod-tcp-bbr=y' .config
-            grep -qx 'CONFIG_PACKAGE_kmod-sched=y' .config
+            require_line feeds/packages/lang/golang/golang/Makefile 'GO_VERSION_MAJOR_MINOR:=1.26'
+            require_config 'CONFIG_TARGET_x86_64=y'
+            require_config 'CONFIG_TARGET_x86_64_DEVICE_generic=y'
+            require_config 'CONFIG_PACKAGE_daed=y'
+            require_config 'CONFIG_PACKAGE_luci-app-daede=y'
+            require_config 'CONFIG_KERNEL_DEBUG_INFO_BTF=y'
+            require_config 'CONFIG_PACKAGE_kmod-tcp-bbr=y'
+            require_config 'CONFIG_PACKAGE_kmod-sched=y'
           elif [ '${{ matrix.platform }}' = n1 ]; then
             grep -qx 'GO_VERSION_MAJOR_MINOR:=1.26' feeds/packages/lang/golang/golang/Makefile
             grep -qx 'CONFIG_TARGET_armsr_armv8=y' .config
